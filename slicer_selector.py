@@ -5,16 +5,29 @@ import os
 import configparser
 import sys
 import subprocess
+import sysconfig
+
+
+def get_ini_file_path():
+    # Get the directory of the executable file
+    exe_dir = "./"
+    if getattr(sys, 'frozen', False):
+        exe_dir = os.path.dirname(sys.executable)
+    elif __file__:
+        exe_dir = os.path.dirname(__file__)
+    return os.path.join(exe_dir, 'slicers.ini')
 
 
 def open_with(file_path, root=None):
     config = configparser.ConfigParser()
 
-    if not os.path.exists("slicers.ini"):
+    ini_file_path = get_ini_file_path()
+
+    if not os.path.exists(ini_file_path):
         editor(file_path)
         return
 
-    config.read("slicers.ini")
+    config.read(ini_file_path)
 
     slicers = config.sections()
 
@@ -67,7 +80,7 @@ def open_with(file_path, root=None):
                 subprocess.Popen([slicer_path, file_path])
                 for prog in slicers:
                     config.set(prog, "last_used", str(prog == slicer))
-                with open("slicers.ini", "w") as config_file:
+                with open(ini_file_path, "w+") as config_file:
                     config.write(config_file)
             root.destroy()
 
@@ -88,8 +101,10 @@ def open_with(file_path, root=None):
 def editor(file_path, parent=None):
     config = configparser.ConfigParser()
 
-    if os.path.exists("slicers.ini"):
-        config.read("slicers.ini")
+    ini_file_path = get_ini_file_path()
+
+    if os.path.exists(ini_file_path):
+        config.read(ini_file_path)
 
     slicers = config.sections()
     slicer_names = [config[slicer].get("name", slicer) for slicer in slicers]
@@ -141,7 +156,7 @@ def editor(file_path, parent=None):
                 config.add_section(slicer_name)
             config.set(slicer_name, "name", slicer_name)
             config.set(slicer_name, "path", slicer_path)
-            with open("slicers.ini", "w") as config_file:
+            with open(ini_file_path, "w+") as config_file:
                 config.write(config_file)
             slicer_dropdown.configure(values=config.sections())
             slicer_dropdown.set(slicer_name)
@@ -155,7 +170,7 @@ def editor(file_path, parent=None):
         selected_slicer = slicer_dropdown.get()
         if selected_slicer:
             config.remove_section(selected_slicer)
-            with open("slicers.ini", "w") as config_file:
+            with open(ini_file_path, "w") as config_file:
                 config.write(config_file)
             slicer_dropdown.configure(values=config.sections())
             slicer_name_entry.delete(0, tk.END)
